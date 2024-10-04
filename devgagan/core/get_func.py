@@ -33,6 +33,9 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     chat = ""
     round_message = False
 
+    # Set chatx to the message's chat ID early
+    chatx = message.chat.id
+
     # Handle "?single" parameter in URL
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
