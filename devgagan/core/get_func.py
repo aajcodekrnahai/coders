@@ -33,14 +33,21 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     chat = ""
     round_message = False
     
-    # Initialize chatx with the chat ID of the message early
-    chatx = message.chat.id  # Set this at the start for availability across the function
-
+    # Define chatx with a default value
+    chatx = None
+    
+    # Set chatx to message's chat ID early in a try-except block to handle any issues
+    try:
+        chatx = message.chat.id
+    except AttributeError:
+        await app.edit_message_text(sender, edit_id, "Error: chat ID is missing in the message.")
+        return  # Exit function if chat ID is missing
+    
     # Handle "?single" parameter in URL
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
 
-    # Extract and calculate the message ID based on the link
+    # Extract and calculate message ID based on the link
     msg_id = int(msg_link.split("/")[-1]) + int(i)
     parts = msg_link.split("/")
     topic_id = None
@@ -59,7 +66,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
 
     file = ""
     try:
-        # Use chatx and chat for any references below as needed
+        # Use chatx and chat in message retrieval and further processing
         msg = await userbot.get_messages(chat, msg_id, replies=topic_id)
         caption = None
 
