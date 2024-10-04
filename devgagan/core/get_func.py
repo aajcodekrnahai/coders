@@ -34,39 +34,32 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     round_message = False
     
     # Define chatx with a default value
-    chatx = None
-    
-    # Set chatx to message's chat ID early in a try-except block to handle any issues
-    try:
-        chatx = message.chat.id
-    except AttributeError:
-        await app.edit_message_text(sender, edit_id, "Error: chat ID is missing in the message.")
-        return  # Exit function if chat ID is missing
+    chatx = message.chat.id  # Set chatx early
     
     # Handle "?single" parameter in URL
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
 
-    # Extract and calculate message ID based on the link
+    # Extract and calculate the message ID based on the link
     msg_id = int(msg_link.split("/")[-1]) + int(i)
     parts = msg_link.split("/")
     topic_id = None
 
     # Determine if link is public or private and extract necessary IDs
     if 't.me/c/' in msg_link:
-        # Private link format
+        # Private link format, convert to integer with `-100` prefix
         chat = int('-100' + str(parts[-3]))
         topic_id = int(parts[-2])
         msg_id = int(parts[-1]) + int(i)
     elif 't.me/' in msg_link:
-        # Public group link
-        chat = parts[-3]
-        topic_id = int(parts[-2])
+        # Public group link, use username directly
+        chat = parts[-2]  # Use username as `chat` for public groups
+        topic_id = int(parts[-1])
         msg_id = int(parts[-1]) + int(i)
 
     file = ""
     try:
-        # Use chatx and chat in message retrieval and further processing
+        # Use `chatx` and `chat` for further processing as needed
         msg = await userbot.get_messages(chat, msg_id, replies=topic_id)
         caption = None
 
@@ -77,6 +70,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
     except Exception as e:
         await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
+
 
 
 async def handle_web_page_message(app, userbot, chatx, sender, msg, edit_id):
