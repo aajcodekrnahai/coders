@@ -26,136 +26,258 @@ from telethon import events, Button
 def thumbnail(sender):
     return f'{sender}.jpg' if os.path.exists(f'{sender}.jpg') else None
 
-
-
 async def get_msg(userbot, sender, edit_id, msg_link, i, message):
     edit = ""
     chat = ""
     round_message = False
-    
-    # Define chatx with a default value
-    chatx = message.chat.id  # Set chatx early
-    
-    # Handle "?single" parameter in URL
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
-
-    # Extract and calculate the message ID based on the link
     msg_id = int(msg_link.split("/")[-1]) + int(i)
-    parts = msg_link.split("/")
-    topic_id = None
 
-    # Determine if link is public or private and extract necessary IDs
-    if 't.me/c/' in msg_link:
-        # Private link format, convert to integer with `-100` prefix
-        chat = int('-100' + str(parts[-3]))
-        topic_id = int(parts[-2])
-        msg_id = int(parts[-1]) + int(i)
-    elif 't.me/' in msg_link:
-        # Public group link, use username directly
-        chat = parts[-2]  # Use username as `chat` for public groups
-        topic_id = int(parts[-1])
-        msg_id = int(parts[-1]) + int(i)
-
-    file = ""
-    try:
-        # Use `chatx` and `chat` for further processing as needed
-        msg = await userbot.get_messages(chat, msg_id, replies=topic_id)
-        caption = None
-
-        # Further processing continues here...
-        # ...
-
-    except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
-        await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
-    except Exception as e:
-        await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
-
-
-
-async def handle_web_page_message(app, userbot, chatx, sender, msg, edit_id):
-    target_chat_id = user_chat_ids.get(chatx, chatx)
-    edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
-    devgaganin = await app.send_message(sender, msg.text.markdown)
-    if msg.pinned_message:
-        try:
-            await devgaganin.pin(both_sides=True)
-        except Exception:
-            await devgaganin.pin()
-    await devgaganin.copy(LOG_GROUP)
-    await edit.delete()
-
-
-async def handle_media_message(userbot, sender, edit_id, msg, chatx, topic_id):
-    # Processing and downloading media
-    edit = await app.edit_message_text(sender, edit_id, "Downloading media...")
-    file = await userbot.download_media(
-        msg,
-        progress=progress_bar,
-        progress_args=("**__Downloading: __**\n", edit, time.time())
-    )
-
-    # Rename file with custom naming logic
-    custom_rename_tag = get_user_rename_preference(chatx)
-    new_file_name = rename_file(file, custom_rename_tag)
-    file = new_file_name
-
-    await app.edit_message_text(sender, edit_id, "Uploading media...")
-    # Example upload handling based on media type
-    await upload_media(userbot, sender, edit_id, msg, file, topic_id)
-
-
-async def handle_text_message(app, sender, edit_id, msg, chatx):
-    # Example handling for a text message
-    edit = await app.edit_message_text(sender, edit_id, "Cloning text message...")
-    devgaganin = await app.send_message(sender, msg.text.markdown)
-    if msg.pinned_message:
-        try:
-            await devgaganin.pin(both_sides=True)
-        except Exception:
-            await devgaganin.pin()
-    await devgaganin.copy(LOG_GROUP)
-    await edit.delete()
-
-
-def rename_file(file, custom_rename_tag):
-    last_dot_index = str(file).rfind('.')
-    if last_dot_index != -1 and last_dot_index != 0:
-        file_extension = str(file)[last_dot_index + 1:]
-        original_file_name = str(file)[:last_dot_index]
-    else:
-        original_file_name = str(file)
-        file_extension = 'mp4'
     
-    delete_words = load_delete_words(chatx)
-    for word in delete_words:
-        original_file_name = original_file_name.replace(word, "")
+    if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
+
+        if 't.me/c/' in msg_link:   
+
+        # Parse the private supergroup link and add '-100' to form the proper chat ID
+
+            chat = int('-100' + msg_link.split("/")[4])
+
+              # The 5th part contains the chat ID in 't.me/c/xxxx' format
+
+    elif 't.me/b/' in msg_link:
+
+        # Handle the 't.me/b/' case as usual
+
+        chat = msg_link.split("/")[-2]
     
-    return f"{original_file_name} {custom_rename_tag}.{file_extension}"
+        file = ""
+        try:
+            chatx = message.chat.id
+            msg = await userbot.get_messages(chat, msg_id)
+            caption = None
 
+            if msg.service is not None:
+                return None 
+            if msg.empty is not None:
+                return None                          
+            if msg.media:
+                if msg.media == MessageMediaType.WEB_PAGE:
+                    target_chat_id = user_chat_ids.get(chatx, chatx)
+                    edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
+                    devgaganin = await app.send_message(sender, msg.text.markdown)
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)                  
+                    await edit.delete()
+                    return
+            if not msg.media:
+                if msg.text:
+                    target_chat_id = user_chat_ids.get(chatx, chatx)
+                    edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
+                    devgaganin = await app.send_message(sender, msg.text.markdown)
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                    await edit.delete()
+                    return
+            
+            edit = await app.edit_message_text(sender, edit_id, "Trying to Download...")
+            file = await userbot.download_media(
+                msg,
+                progress=progress_bar,
+                progress_args=("**__Downloading: __**\n",edit,time.time()))
+            
+            custom_rename_tag = get_user_rename_preference(chatx)
+            last_dot_index = str(file).rfind('.')
+            if last_dot_index != -1 and last_dot_index != 0:
+                ggn_ext = str(file)[last_dot_index + 1:]
+                if ggn_ext.isalpha() and len(ggn_ext) <= 4:
+                    if ggn_ext.lower() == 'mov':
+                        original_file_name = str(file)[:last_dot_index]
+                        file_extension = 'mp4'
+                    else:
+                        original_file_name = str(file)[:last_dot_index]
+                        file_extension = ggn_ext
+                else:
+                    original_file_name = str(file)
+                    file_extension = 'mp4'
+            else:
+                original_file_name = str(file)
+                file_extension = 'mp4'
 
-async def upload_media(userbot, sender, edit_id, msg, file, topic_id):
-    # Upload function adapted for Topic or Supergroup
-    if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
-        metadata = video_metadata(file)
-        await app.send_video(
-            chat_id=sender,
-            video=file,
-            caption=msg.caption or '',
-            height=metadata['height'],
-            width=metadata['width'],
-            duration=metadata['duration'],
-            thumb=None,
-            supports_streaming=True,
-            progress=progress_bar,
-            progress_args=('**UPLOADING:**\n', edit, time.time())
-        )
-    elif msg.media == MessageMediaType.PHOTO:
-        await app.send_photo(sender, file, caption=msg.caption or '')
+            delete_words = load_delete_words(chatx)
+            for word in delete_words:
+                original_file_name = original_file_name.replace(word, "")
+            video_file_name = original_file_name + " " + custom_rename_tag    
+            new_file_name = original_file_name + " " + custom_rename_tag + "." + file_extension
+            os.rename(file, new_file_name)
+            file = new_file_name
+
+            # CODES are hidden             
+
+            await edit.edit('Trying to Uplaod ...')
+            
+            if msg.media == MessageMediaType.VIDEO and msg.video.mime_type in ["video/mp4", "video/x-matroska"]:
+
+                metadata = video_metadata(file)      
+                width= metadata['width']
+                height= metadata['height']
+                duration= metadata['duration']
+
+                if duration <= 300:
+                    devgaganin = await app.send_video(chat_id=sender, video=file, caption=caption, height=height, width=width, duration=duration, thumb=None, progress=progress_bar, progress_args=('**UPLOADING:**\n', edit, time.time())) 
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                    await edit.delete()
+                    return
+                
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                lines = final_caption.split('\n')
+                processed_lines = []
+                for line in lines:
+                    for word in delete_words:
+                        line = line.replace(word, '')
+                    if line.strip():
+                        processed_lines.append(line.strip())
+                final_caption = '\n'.join(processed_lines)
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(chatx, chatx)
+                
+                thumb_path = await screenshot(file, duration, chatx)              
+                try:
+                    devgaganin = await app.send_video(
+                        chat_id=target_chat_id,
+                        video=file,
+                        caption=caption,
+                        supports_streaming=True,
+                        height=height,
+                        width=width,
+                        duration=duration,
+                        thumb=thumb_path,
+                        progress=progress_bar,
+                        progress_args=(
+                        '**__Uploading...__**\n',
+                        edit,
+                        time.time()
+                        )
+                       )
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+                    await devgaganin.copy(LOG_GROUP)
+                except:
+                    await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat...")
+
+                os.remove(file)
+                    
+            elif msg.media == MessageMediaType.PHOTO:
+                await edit.edit("**`Uploading photo...`")
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                lines = final_caption.split('\n')
+                processed_lines = []
+                for line in lines:
+                    for word in delete_words:
+                        line = line.replace(word, '')
+                    if line.strip():
+                        processed_lines.append(line.strip())
+                final_caption = '\n'.join(processed_lines)
+                replacements = load_replacement_words(sender)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(sender, sender)
+                devgaganin = await app.send_photo(chat_id=target_chat_id, photo=file, caption=caption)
+                if msg.pinned_message:
+                    try:
+                        await devgaganin.pin(both_sides=True)
+                    except Exception as e:
+                        await devgaganin.pin()                
+                await devgaganin.copy(LOG_GROUP)
+            else:
+                thumb_path = thumbnail(chatx)
+                delete_words = load_delete_words(sender)
+                custom_caption = get_user_caption_preference(sender)
+                original_caption = msg.caption if msg.caption else ''
+                final_caption = f"{original_caption}" if custom_caption else f"{original_caption}"
+                lines = final_caption.split('\n')
+                processed_lines = []
+                for line in lines:
+                    for word in delete_words:
+                        line = line.replace(word, '')
+                    if line.strip():
+                        processed_lines.append(line.strip())
+                final_caption = '\n'.join(processed_lines)
+                replacements = load_replacement_words(chatx)
+                for word, replace_word in replacements.items():
+                    final_caption = final_caption.replace(word, replace_word)
+                caption = f"{final_caption}\n\n__**{custom_caption}**__" if custom_caption else f"{final_caption}"
+
+                target_chat_id = user_chat_ids.get(chatx, chatx)
+                try:
+                    devgaganin = await app.send_document(
+                        chat_id=target_chat_id,
+                        document=file,
+                        caption=caption,
+                        thumb=thumb_path,
+                        progress=progress_bar,
+                        progress_args=(
+                        '**`Uploading...`**\n',
+                        edit,
+                        time.time()
+                        )
+                    )
+                    if msg.pinned_message:
+                        try:
+                            await devgaganin.pin(both_sides=True)
+                        except Exception as e:
+                            await devgaganin.pin()
+
+                    await devgaganin.copy(LOG_GROUP)
+                except:
+                    await app.edit_message_text(sender, edit_id, "The bot is not an admin in the specified chat.") 
+                
+                os.remove(file)
+                        
+            await edit.delete()
+        
+        except (ChannelBanned, ChannelInvalid, ChannelPrivate, ChatIdInvalid, ChatInvalid):
+            await app.edit_message_text(sender, edit_id, "Have you joined the channel?")
+            return
+        except Exception as e:
+            await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')       
+        
     else:
-        await app.send_document(sender, file, caption=msg.caption or '')
-
-    os.remove(file)
+        edit = await app.edit_message_text(sender, edit_id, "Cloning...")
+        try:
+            chat = msg_link.split("/")[-2]
+            await copy_message_with_chat_id(app, sender, chat, msg_id) 
+            await edit.delete()
+        except Exception as e:
+            await app.edit_message_text(sender, edit_id, f'Failed to save: `{msg_link}`\n\nError: {str(e)}')
 
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
